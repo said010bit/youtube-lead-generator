@@ -1,0 +1,145 @@
+name: YouTube Lead Generator
+
+on:
+  # Manuell trigger
+  workflow_dispatch:
+    inputs:
+      target_videos:
+        description: 'Kommaseparerade video-ID:n (lämna tomt för att använda kanal-ID)'
+        required: false
+        type: string
+      target_channel:
+        description: 'YouTube kanal-ID'
+        required: false
+        type: string
+      max_comments:
+        description: 'Max antal kommentarer per video'
+        required: false
+        default: '1000'
+        type: string
+      enable_instagram:
+        description: 'Aktivera Instagram-sökning'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+        - 'true'
+        - 'false'
+      min_activity_score:
+        description: 'Minsta aktivitetspoäng för top-kommentatorer'
+        required: false
+        default: '5'
+        type: string
+  
+  # Schemalagd körning (valfritt - kan aktiveras av kunden)
+  # schedule:
+  #   - cron: '0 9 * * MON'  # Varje måndag kl 09:00 UTC
+
+jobs:
+  analyze-youtube-comments:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Create output directory
+      run: mkdir -p output
+    
+    - name: Run YouTube Comment Analysis
+      env:
+        YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+        TARGET_VIDEO_IDS: ${{ inputs.target_videos || secrets.TARGET_VIDEO_IDS }}
+        TARGET_CHANNEL_ID: ${{ inputs.target_channel || secrets.TARGET_CHANNEL_ID }}
+        MAX_COMMENTS_PER_VIDEO: ${{ inputs.max_comments }}
+        MIN_ACTIVITY_SCORE: ${{ inputs.min_activity_score }}
+        ENABLE_INSTAGRAM_SEARCH: ${{ inputs.enable_instagram }}
+        INSTAGRAM_SEARCH_DELAY: '3000'
+        OUTPUT_DIR: './output'
+      run: |
+        echo "🚀 Startar YouTube Lead Generator..."
+        echo "Konfiguration:"
+        echo "- Målvideor: ${TARGET_VIDEO_IDS:-Använder kanal-ID}"
+        echo "- Målkanal: ${TARGET_CHANNEL_ID:-Ej angiven}"
+        echo "- Max kommentarer: ${MAX_COMMENTS_PER_VIDEO}"
+        echo "- Min aktivitetspoäng: ${MIN_ACTIVITY_SCORE}"
+        echo "- Instagram-sökning: ${ENABLE_INSTAGRAM_SEARCH}"
+        
+        npm start
+    
+    - name: Upload Raw Comments
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: youtube-commenters-raw
+        path: output/youtube_commenters_raw.csv
+        retention-days: 30
+    
+    - name: Upload Ranked Commenters
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: youtube-commenters-ranked
+        path: output/youtube_commenters_ranked.csv
+        retention-days: 30
+    
+    - name: Upload Instagram Results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: top-candidates-with-instagram
+        path: output/top_candidates_with_instagram.csv
+        retention-days: 30
+        if-no-files-found: ignore
+    
+    - name: Generate Summary Report
+      if: always()
+      run: |
+        echo "## 📊 Analysrapport" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ -f output/youtube_commenters_raw.csv ]; then
+          RAW_COUNT=$(tail -n +2 output/youtube_commenters_raw.csv | wc -l)
+          echo "- **Totalt antal kommentarer:** $RAW_COUNT" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        if [ -f output/youtube_commenters_ranked.csv ]; then
+          RANKED_COUNT=$(tail -n +2 output/youtube_commenters_ranked.csv | wc -l)
+          echo "- **Unika kommentatorer:** $RANKED_COUNT" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        if [ -f output/top_candidates_with_instagram.csv ]; then
+          IG_COUNT=$(tail -n +2 output/top_candidates_with_instagram.csv | wc -l)
+          echo "- **Instagram-profiler hittade:** $IG_COUNT" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📁 Nedladdningsbara filer" >> $GITHUB_STEP_SUMMARY
+        echo "Alla CSV-filer finns tillgängliga under 'Artifacts' i denna workflow-körning." >> $GITHUB_STEP_SUMMARY
+    
+    - name: Send notification (optional)
+      if: success() && secrets.WEBHOOK_URL != ''
+      run: |
+        # Skicka notifikation till webhook (t.ex. Slack, Discord, etc.)
+        curl -X POST ${{ secrets.WEBHOOK_URL }} \
+          -H "Content-Type: application/json" \
+          -d '{
+            "text": "✅ YouTube Lead Generator har slutförts!",
+            "attachments": [{
+              "color": "good",
+              "fields": [
+                {"title": "Workflow", "value": "${{ github.workflow }}"},
+                {"title": "Status", "value": "Success"},
+                {"title": "Run ID", "value": "${{ github.run_id }}"}
+              ]
+            }]
+          }'
