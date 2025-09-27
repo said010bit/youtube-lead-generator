@@ -127,19 +127,23 @@ jobs:
         echo "Alla CSV-filer finns tillgängliga under 'Artifacts' i denna workflow-körning." >> $GITHUB_STEP_SUMMARY
 
     - name: Send notification (optional)
-      if: ${{ success() && secrets.WEBHOOK_URL != '' }}
+      if: ${{ success() }}
       run: |
-        # Skicka notifikation till webhook (t.ex. Slack, Discord, etc.)
-        curl -X POST "${{ secrets.WEBHOOK_URL }}" \
-          -H "Content-Type: application/json" \
-          -d '{
-            "text": "■ YouTube Lead Generator har slutförts!",
-            "attachments": [{
-              "color": "good",
-              "fields": [
-                {"title": "Workflow", "value": "${{ github.workflow }}"},
-                {"title": "Status", "value": "Success"},
-                {"title": "Run ID", "value": "${{ github.run_id }}"}
-              ]
-            }]
-          }'
+        if [ -n "${{ secrets.WEBHOOK_URL }}" ]; then
+          # Skicka notifikation till webhook (t.ex. Slack, Discord, etc.)
+          curl -X POST "${{ secrets.WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "text": "■ YouTube Lead Generator har slutförts!",
+              "attachments": [{
+                "color": "good",
+                "fields": [
+                  {"title": "Workflow", "value": "${{ github.workflow }}"},
+                  {"title": "Status", "value": "Success"},
+                  {"title": "Run ID", "value": "${{ github.run_id }}"}
+                ]
+              }]
+            }'
+        else
+          echo "Ingen WEBHOOK_URL angiven, skickar ingen notifikation."
+        fi
