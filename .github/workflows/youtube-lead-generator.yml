@@ -93,13 +93,13 @@ jobs:
         retention-days: 30
     
     - name: Upload Instagram Results
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: top-candidates-with-instagram
-        path: output/top_candidates_with_instagram.csv
-        retention-days: 30
-           if-no-files-found: ignore
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: top-candidates-with-instagram
+          path: output/top_candidates_with_instagram.csv
+          retention-days: 30
+          if-no-files-found: ignore
     
     - name: Generate Summary Report
       if: always()
