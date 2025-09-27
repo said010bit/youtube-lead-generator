@@ -1,0 +1,21 @@
+{
+  "name": "youtube-lead-generator",
+  "version": "1.0.0",
+  "description": "YouTube comment analysis and lead generation tool",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "analyze": "node src/analyze.js",
+    "test": "node src/test-api.js"
+  },
+  "dependencies": {
+    "googleapis": "^126.0.1",
+    "csv-writer": "^1.6.0",
+    "dotenv": "^16.3.1",
+    "axios": "^1.6.0",
+    "cheerio": "^1.0.0-rc.12"
+  },
+  "author": "",
+  "license": "MIT"
+}
