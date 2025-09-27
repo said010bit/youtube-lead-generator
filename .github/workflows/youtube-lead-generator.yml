@@ -92,7 +92,7 @@ jobs:
         path: output/youtube_commenters_ranked.csv
         retention-days: 30
     
-    - name: Upload Instagram Results
+     - name: Upload Instagram Results
         if: always()
         uses: actions/upload-artifact@v4
         with:
