@@ -36,7 +36,7 @@ on:
   #   - cron: '0 9 * * MON'  # Varje måndag kl 09:00 UTC
 
 jobs:
-analyze-youtube-comments:
+ analyze-youtube-comments:
     runs-on: ubuntu-latest
     
     steps:
