@@ -99,7 +99,7 @@ jobs:
         name: top-candidates-with-instagram
         path: output/top_candidates_with_instagram.csv
         retention-days: 30
-        if-no-files-found: ignore
+           if-no-files-found: ignore
     
     - name: Generate Summary Report
       if: always()
